@@ -1,6 +1,6 @@
 === BILAN IMPORT ===
 ReadCount  : 209210
-WriteCount : 209210
+WriteCount : 0
 SkipCount  : 0
 
 Ids skippés :

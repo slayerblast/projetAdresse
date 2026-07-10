@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS adresse;
+/*DROP TABLE IF EXISTS adresse;*/
 
 CREATE TABLE IF NOT EXISTS adresse (
     id TEXT NOT NULL,

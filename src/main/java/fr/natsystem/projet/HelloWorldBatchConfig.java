@@ -11,19 +11,17 @@ import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.infrastructure.item.database.JdbcBatchItemWriter;
 import org.springframework.batch.infrastructure.item.database.builder.JdbcBatchItemWriterBuilder;
 import org.springframework.batch.infrastructure.item.file.FlatFileItemReader;
-import org.springframework.batch.infrastructure.item.file.FlatFileParseException;
 import org.springframework.batch.infrastructure.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.infrastructure.item.file.mapping.RecordFieldSetMapper;
+import org.springframework.batch.infrastructure.item.validator.ValidatingItemProcessor;
 import org.springframework.batch.infrastructure.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.dao.DataAccessException;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import jakarta.validation.ValidationException;
 
 
 @Configuration
@@ -160,6 +158,17 @@ public class HelloWorldBatchConfig {
                 .build();
     }
 
+    @Bean
+    public ValidatingItemProcessor<Adresse> validatingProcessor(
+            AdresseDuplicateValidator validator) {
+
+        ValidatingItemProcessor<Adresse> processor =
+                new ValidatingItemProcessor<>(validator);
+
+        processor.setFilter(true);
+
+        return processor;
+    }
 
     // JobRepository et PlatformTransactionManager sont auto-câblés par Spring Boot
     @Bean
@@ -168,9 +177,11 @@ public class HelloWorldBatchConfig {
     }
 
     @Bean
-    public Job importAdresseJob(JobRepository jobRepository, Step importAdresseStep, BilanJobListener listener) {
+    public Job importAdresseJob(JobRepository jobRepository, Step importAdresseStep,
+                                BilanJobListener listener,DuplicationJobListener duplicationListener) {
         return new JobBuilder("importAdresseJob", jobRepository)
                 .listener(listener)
+                .listener(duplicationListener)
                 .start(importAdresseStep)
                 .build();
     }
@@ -191,12 +202,14 @@ public class HelloWorldBatchConfig {
             PlatformTransactionManager tx,
             FlatFileItemReader<Adresse> csvReader,
             JdbcBatchItemWriter<Adresse> jdbcWriter,
+            ValidatingItemProcessor<Adresse> validatingProcessor,
             StepProgessListener listener,
             AdresseSkipListener skipListener) {
         return new StepBuilder("importAdresseStep", repo)
                 .<Adresse, Adresse>chunk(1000)
                 .transactionManager(tx)
                 .reader(csvReader)
+                .processor(validatingProcessor)
                 .writer(jdbcWriter)
                 .faultTolerant()
                 .skip(DataAccessException.class)
