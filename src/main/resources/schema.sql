@@ -1,28 +1,28 @@
-/*DROP TABLE IF EXISTS adresse;*/
+DROP TABLE IF EXISTS adresse;
 
 CREATE TABLE IF NOT EXISTS adresse (
-    id TEXT NOT NULL,
+    id TEXT,
     id_fantoir TEXT,
-    numero TEXT NOT NULL,
+    numero TEXT,
     rep TEXT,
-    nom_voie TEXT NOT NULL,
+    nom_voie TEXT,
     code_postal TEXT,
-    code_insee TEXT NOT NULL,
-    nom_commune TEXT NOT NULL,
+    code_insee TEXT,
+    nom_commune TEXT,
     code_insee_ancienne_commune TEXT,
     nom_ancienne_commune TEXT,
-    x REAL NOT NULL,
-    y REAL NOT NULL,
-    lon REAL NOT NULL,
-    lat REAL NOT NULL,
-    type_position TEXT NOT NULL,
+    x REAL,
+    y REAL,
+    lon REAL,
+    lat REAL,
+    type_position TEXT,
     alias TEXT,
     nom_ld TEXT,
     libelle_acheminement TEXT,
     nom_afnor TEXT,
-    source_position TEXT NOT NULL,
-    source_nom_voie TEXT NOT NULL,
-    certification_commune INTEGER NOT NULL,
+    source_position TEXT,
+    source_nom_voie TEXT,
+    certification_commune INTEGER,
     cad_parcelles TEXT
 
 );

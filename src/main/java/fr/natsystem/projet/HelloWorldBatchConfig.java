@@ -2,6 +2,8 @@ package fr.natsystem.projet;
 
 import javax.sql.DataSource;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -13,6 +15,8 @@ import org.springframework.batch.infrastructure.item.database.builder.JdbcBatchI
 import org.springframework.batch.infrastructure.item.file.FlatFileItemReader;
 import org.springframework.batch.infrastructure.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.infrastructure.item.file.mapping.RecordFieldSetMapper;
+import org.springframework.batch.infrastructure.item.support.CompositeItemProcessor;
+import org.springframework.batch.infrastructure.item.validator.BeanValidatingItemProcessor;
 import org.springframework.batch.infrastructure.item.validator.ValidatingItemProcessor;
 import org.springframework.batch.infrastructure.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,34 +26,35 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.dao.DataAccessException;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import java.util.List;
 
 
 @Configuration
 public class HelloWorldBatchConfig {
 
     public record Adresse(
-            String id,
+            @NotBlank String id,
             String id_fantoir,
-            String numero,
+            @NotBlank String numero,
             String rep,
-            String nom_voie,
+            @NotBlank String nom_voie,
             String code_postal,
-            String code_insee,
-            String nom_commune,
+            @NotBlank String code_insee,
+            @NotBlank String nom_commune,
             String code_insee_ancienne_commune,
             String nom_ancienne_commune,
-            Double x,
-            Double y,
-            Double lon,
-            Double lat,
-            String type_position,
+            @NotNull Double x,
+            @NotNull Double y,
+            @NotNull Double lon,
+            @NotNull Double lat,
+            @NotBlank String type_position,
             String alias,
             String nom_ld,
             String libelle_acheminement,
             String nom_afnor,
-            String source_position,
-            String source_nom_voie,
-            Integer certification_commune,
+            @NotBlank String source_position,
+            @NotBlank String source_nom_voie,
+            @NotNull Integer certification_commune,
             String cad_parcelles
     ) {
     }
@@ -159,6 +164,14 @@ public class HelloWorldBatchConfig {
     }
 
     @Bean
+    public BeanValidatingItemProcessor<Adresse> beanValidatingProcessor() {
+        BeanValidatingItemProcessor<Adresse> processor =
+                new BeanValidatingItemProcessor<>();
+        processor.setFilter(true);
+        return processor;
+    }
+
+    @Bean
     public ValidatingItemProcessor<Adresse> validatingProcessor(
             AdresseDuplicateValidator validator) {
 
@@ -169,6 +182,29 @@ public class HelloWorldBatchConfig {
 
         return processor;
     }
+
+    @Bean
+    public DuplicateRulesProcessor duplicateRulesProcessor(){
+        return new DuplicateRulesProcessor();
+    }
+    @Bean
+    public CompositeItemProcessor<Adresse, Adresse> compositeProcessor(
+            DuplicateRulesProcessor duplicateRulesProcessor,
+            ValidatingItemProcessor<Adresse> validatingProcessor,
+            BeanValidatingItemProcessor<Adresse> beanValidatingProcessor) {
+
+        CompositeItemProcessor<Adresse, Adresse> processor =
+                new CompositeItemProcessor<>();
+
+        processor.setDelegates(List.of(
+                beanValidatingProcessor,
+                duplicateRulesProcessor,
+                validatingProcessor
+        ));
+
+        return processor;
+    }
+
 
     // JobRepository et PlatformTransactionManager sont auto-câblés par Spring Boot
     @Bean
@@ -202,14 +238,14 @@ public class HelloWorldBatchConfig {
             PlatformTransactionManager tx,
             FlatFileItemReader<Adresse> csvReader,
             JdbcBatchItemWriter<Adresse> jdbcWriter,
-            ValidatingItemProcessor<Adresse> validatingProcessor,
+            CompositeItemProcessor <Adresse, Adresse> compositeProcessor,
             StepProgessListener listener,
             AdresseSkipListener skipListener) {
         return new StepBuilder("importAdresseStep", repo)
                 .<Adresse, Adresse>chunk(1000)
                 .transactionManager(tx)
                 .reader(csvReader)
-                .processor(validatingProcessor)
+                .processor(compositeProcessor)
                 .writer(jdbcWriter)
                 .faultTolerant()
                 .skip(DataAccessException.class)

@@ -17,6 +17,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class StepProgessListener implements StepExecutionListener {
     private final AdresseSkipListener skipListener;
+    private final DuplicateRulesProcessor drProcessor;
 
 
     @Override
@@ -26,6 +27,8 @@ public class StepProgessListener implements StepExecutionListener {
 
     @Override
     public ExitStatus afterStep(StepExecution s) {
+        /*
+        long doublons = s.getReadCount() - s.getWriteCount() - drProcessor.getInvalidAdresseSize();
 
         //
         try (FileWriter writer = new FileWriter("src/main/resources/bilan/bilan.txt")) {
@@ -33,10 +36,16 @@ public class StepProgessListener implements StepExecutionListener {
             writer.write("=== BILAN IMPORT ===\n");
             writer.write("ReadCount  : " + s.getReadCount() + "\n");
             writer.write("WriteCount : " + s.getWriteCount() + "\n");
+            writer.write("Ligne en double : " + doublons + "\n");
+
             writer.write("SkipCount  : " + s.getSkipCount() + "\n");
 
-            writer.write("\nIds skippés :\n");
+            writer.write("\nIds rejeté :\n");
+            for (String id : drProcessor.getInvalidAdresse()) {
+                writer.write(id + "\n");
+            }
 
+            writer.write("\nIds skippés :\n");
             for (String id : skipListener.getSkippedIds()) {
                 writer.write(id + "\n");
             }
@@ -44,7 +53,7 @@ public class StepProgessListener implements StepExecutionListener {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
+    */
         return s.getExitStatus();
     }
 

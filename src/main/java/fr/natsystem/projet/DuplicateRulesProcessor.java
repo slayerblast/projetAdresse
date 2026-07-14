@@ -1,14 +1,21 @@
 package fr.natsystem.projet;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
 import org.springframework.batch.infrastructure.item.ItemProcessor;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
+@Slf4j
+@RequiredArgsConstructor
 public class DuplicateRulesProcessor implements ItemProcessor <HelloWorldBatchConfig.Adresse, HelloWorldBatchConfig.Adresse> {
-
-   private final Set<BanKey> processed = new HashSet<>();
+    private final DuplicationJobListener duplicationJobListener;
+    private final Set<BanKey> processed = new HashSet<>();
+    private final List<String> invalidAdresse = new ArrayList<>();
 
     @Override
     public HelloWorldBatchConfig.@Nullable Adresse process(HelloWorldBatchConfig.Adresse item) throws Exception {
@@ -16,18 +23,24 @@ public class DuplicateRulesProcessor implements ItemProcessor <HelloWorldBatchCo
         //On ignore si le format de l'id n'est pas valid
         if(!isValidId(item.id()))
         {
+            invalidAdresse.add(item.id());
             return null;
         }
-    BanKey key = new BanKey(
-            item.id(),
-            item.x(),
-            item.y(),
-            item.lon(),
-            item.lat(),
-            item.type_position()
-    );
-    if(!processed.add(key))
+        String key =   item.id()
+                + "|"
+                + item.type_position()
+                + "|"
+                + item.x()
+                + "|"
+                + item.y();
+
+        if (!duplicationJobListener.getExistingKeys().add(key)) {
+            return null;
+        }
+
+    if(!duplicationJobListener.getExistingKeys().add(key))
     {
+
         return null;
     }
         return item;
@@ -45,5 +58,13 @@ public class DuplicateRulesProcessor implements ItemProcessor <HelloWorldBatchCo
         return id != null && id.matches("^79\\d{3}.*");
     }
 
-    private record BanKey(String id,Double x, Double y, Double lon, Double lat, String type_position){}
+    public List<String> getInvalidAdresse() {
+        return invalidAdresse;
+    }
+
+    public int getInvalidAdresseSize() {
+        return invalidAdresse.size();
+    }
+
+    private record BanKey(String id,Double x, Double y, String type_position){}
 }
