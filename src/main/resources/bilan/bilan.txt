@@ -1,8 +1,8 @@
 === BILAN IMPORT ===
 ReadCount  : 215163
-WriteCount : 209202
-Ligne en double : 5960
-SkipCount  : 0
+WriteCount : 208167
+Ligne en double : 6995
+SkipCount  : 1
 
 Ids rejeté :
 Scillé

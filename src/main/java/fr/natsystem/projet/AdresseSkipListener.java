@@ -11,6 +11,7 @@ import java.util.List;
 public class AdresseSkipListener implements SkipListener<HelloWorldBatchConfig.Adresse, HelloWorldBatchConfig.Adresse> {
 
     private final List<String> skippedIds = new ArrayList<>();
+    private final List<String> idsRejetes = new ArrayList<>();
 
     @Override
     public void onSkipInRead(Throwable t) {
@@ -20,6 +21,7 @@ public class AdresseSkipListener implements SkipListener<HelloWorldBatchConfig.A
     @Override
     public void onSkipInProcess(HelloWorldBatchConfig.Adresse adresse, Throwable t) {
         log.warn("Skip process id={}", adresse.id());
+        idsRejetes.add(adresse.id());
     }
 
     @Override
@@ -31,6 +33,9 @@ public class AdresseSkipListener implements SkipListener<HelloWorldBatchConfig.A
 
     public List<String> getSkippedIds() {
         return skippedIds;
+    }
+    public List<String> getRejetesIds() {
+        return idsRejetes;
     }
 
 

@@ -2,6 +2,7 @@ package fr.natsystem.projet;
 
 import javax.sql.DataSource;
 
+import org.springframework.batch.infrastructure.item.validator.ValidationException;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.batch.core.configuration.annotation.StepScope;
@@ -60,7 +61,7 @@ public class HelloWorldBatchConfig {
     }
 
 
-    // FlatFileItemReader
+    // FlatFileItemReader avec fichier en dur
     /* Reader non dynamique
 	@Bean
 	public FlatFileItemReader<Adresse> csvReader() {
@@ -165,44 +166,37 @@ public class HelloWorldBatchConfig {
 
     @Bean
     public BeanValidatingItemProcessor<Adresse> beanValidatingProcessor() {
-        BeanValidatingItemProcessor<Adresse> processor =
+        BeanValidatingItemProcessor<Adresse> processorBeanV =
                 new BeanValidatingItemProcessor<>();
-        processor.setFilter(true);
-        return processor;
+        processorBeanV.setFilter(true);
+        return processorBeanV;
     }
 
     @Bean
     public ValidatingItemProcessor<Adresse> validatingProcessor(
-            AdresseDuplicateValidator validator) {
+            AdresseValidator validator) {
 
-        ValidatingItemProcessor<Adresse> processor =
-                new ValidatingItemProcessor<>(validator);
-
-        processor.setFilter(true);
-
-        return processor;
+        return new ValidatingItemProcessor<>(validator);
     }
 
-    @Bean
-    public DuplicateRulesProcessor duplicateRulesProcessor(){
-        return new DuplicateRulesProcessor();
-    }
+
+
     @Bean
     public CompositeItemProcessor<Adresse, Adresse> compositeProcessor(
             DuplicateRulesProcessor duplicateRulesProcessor,
             ValidatingItemProcessor<Adresse> validatingProcessor,
             BeanValidatingItemProcessor<Adresse> beanValidatingProcessor) {
 
-        CompositeItemProcessor<Adresse, Adresse> processor =
+        CompositeItemProcessor<Adresse, Adresse> processorComp =
                 new CompositeItemProcessor<>();
 
-        processor.setDelegates(List.of(
+        processorComp.setDelegates(List.of(
                 beanValidatingProcessor,
                 duplicateRulesProcessor,
                 validatingProcessor
         ));
 
-        return processor;
+        return processorComp;
     }
 
 
@@ -248,7 +242,7 @@ public class HelloWorldBatchConfig {
                 .processor(compositeProcessor)
                 .writer(jdbcWriter)
                 .faultTolerant()
-                .skip(DataAccessException.class)
+                .skip(ValidationException.class)
                 .skipLimit(Integer.MAX_VALUE)
                 .listener(listener)
                 .listener(skipListener)

@@ -32,7 +32,7 @@ public class BilanJobListener implements JobExecutionListener {
                 .filter(s-> s.getStepName().equals("importAdresseStep"))
                 .findFirst().orElse(null);
         if(importSet!=null){
-            long doublons = importSet.getReadCount() - importSet.getWriteCount() - drProcessor.getInvalidAdresseSize();
+            long doublons = importSet.getReadCount() - importSet.getWriteCount() - skipListener.getRejetesIds().size();
             try (FileWriter writer = new FileWriter("src/main/resources/bilan/bilan.txt")) {
 
                 writer.write("=== BILAN IMPORT ===\n");
@@ -43,7 +43,7 @@ public class BilanJobListener implements JobExecutionListener {
                 writer.write("SkipCount  : " + importSet.getSkipCount() + "\n");
 
                 writer.write("\nIds rejeté :\n");
-                for (String id : drProcessor.getInvalidAdresse()) {
+                for (String id : skipListener.getRejetesIds()) {
                     writer.write(id + "\n");
                 }
 
