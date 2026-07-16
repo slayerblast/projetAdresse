@@ -185,6 +185,47 @@ public class HelloWorldBatchConfig {
     }
 
     @Bean
+    public JdbcBatchItemWriter<Adresse> stagingWriter(
+            DataSource ds) {
+
+        return new JdbcBatchItemWriterBuilder<Adresse>()
+                .dataSource(ds)
+                .sql("""
+                INSERT INTO adresse_staging (
+                    id, id_fantoir, numero, rep, nom_voie,
+                    code_postal, code_insee, nom_commune,
+                    code_insee_ancienne_commune,
+                    nom_ancienne_commune,
+                    x, y, lon, lat,
+                    type_position,
+                    alias, nom_ld,
+                    libelle_acheminement,
+                    nom_afnor,
+                    source_position,
+                    source_nom_voie,
+                    certification_commune,
+                    cad_parcelles
+                ) VALUES (
+                    :id, :id_fantoir, :numero, :rep, :nom_voie,
+                    :code_postal, :code_insee, :nom_commune,
+                    :code_insee_ancienne_commune,
+                    :nom_ancienne_commune,
+                    :x, :y, :lon, :lat,
+                    :type_position,
+                    :alias, :nom_ld,
+                    :libelle_acheminement,
+                    :nom_afnor,
+                    :source_position,
+                    :source_nom_voie,
+                    :certification_commune,
+                    :cad_parcelles
+                )
+            """)
+                .beanMapped()
+                .build();
+    }
+
+    @Bean
     public BeanValidatingItemProcessor<Adresse> beanValidatingProcessor() {
         BeanValidatingItemProcessor<Adresse> processorBeanV =
                 new BeanValidatingItemProcessor<>();
@@ -215,7 +256,7 @@ public class HelloWorldBatchConfig {
     }
 
 
-
+    // CompositeItemProcessor pour le step importAdresseStep
     @Bean
     public CompositeItemProcessor<Adresse, Adresse> compositeProcessor(
             DuplicateRulesProcessor duplicateRulesProcessor,
@@ -234,6 +275,23 @@ public class HelloWorldBatchConfig {
         return processorComp;
     }
 
+    // CompositeItemProcessor pour le step importCsvStep
+    @Bean
+    public CompositeItemProcessor<Adresse, Adresse> compositeCsvProcessor(
+            ValidatingItemProcessor<Adresse> validatingProcessor,
+            BeanValidatingItemProcessor<Adresse> beanValidatingProcessor) {
+
+        CompositeItemProcessor<Adresse, Adresse> processorComp =
+                new CompositeItemProcessor<>();
+
+        processorComp.setDelegates(List.of(
+                beanValidatingProcessor,
+                validatingProcessor
+        ));
+
+        return processorComp;
+    }
+
 
     // JobRepository et PlatformTransactionManager sont auto-câblés par Spring Boot
     @Bean
@@ -245,12 +303,14 @@ public class HelloWorldBatchConfig {
     public Job importAdresseJob(JobRepository jobRepository, Step importAdresseStep,
                                 BilanJobListener listener,
                                 DuplicationJobListener duplicationListener,
-                                Step suppressionObsoleteStep) {
+                                Step suppressionObsoleteStep,
+                                Step importCsvStep) {
         return new JobBuilder("importAdresseJob", jobRepository)
                 .listener(listener)
                 .listener(duplicationListener)
-                .start(importAdresseStep)
-                .next(suppressionObsoleteStep)
+                .start(importCsvStep)
+                //.start(importAdresseStep)
+                //.next(suppressionObsoleteStep)
                 .build();
     }
 
@@ -287,6 +347,26 @@ public class HelloWorldBatchConfig {
                 .build();
 
     }
-
-
+    @Bean
+    public Step importCsvStep(
+            JobRepository repo,
+            PlatformTransactionManager tx,
+            FlatFileItemReader<Adresse> csvReader,
+            JdbcBatchItemWriter<Adresse> stagingWriter,
+            CompositeItemProcessor <Adresse, Adresse> compositeCsvProcessor,
+            StepProgessListener listener,
+            AdresseSkipListener skipListener) {
+        return new StepBuilder("importCsvStep", repo)
+                .<Adresse, Adresse>chunk(10000)
+                .transactionManager(tx)
+                .reader(csvReader)
+                //.processor(compositeCsvProcessor)
+                .writer(stagingWriter)
+                .faultTolerant()
+                .skip(ValidationException.class)
+                .skipLimit(Integer.MAX_VALUE)
+                //.listener(listener)
+                //.listener(skipListener)
+                .build();
+    }
 }
