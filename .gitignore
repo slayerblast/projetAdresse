@@ -6,7 +6,7 @@ src/main/resources/adresses-france.csv
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
-
+adresse.db
 ### STS ###
 .apt_generated
 .classpath
