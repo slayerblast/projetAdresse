@@ -2,6 +2,7 @@ package fr.natsystem.projet;
 
 import javax.sql.DataSource;
 
+import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.infrastructure.item.validator.ValidationException;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -22,14 +23,15 @@ import org.springframework.batch.infrastructure.item.validator.ValidatingItemPro
 import org.springframework.batch.infrastructure.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.dao.DataAccessException;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.util.List;
+import java.util.Objects;
 
-
+@Slf4j
 @Configuration
 public class HelloWorldBatchConfig {
 
@@ -58,47 +60,42 @@ public class HelloWorldBatchConfig {
             @NotNull Integer certification_commune,
             String cad_parcelles
     ) {
+        public boolean isBetterThan(Adresse other) {
+
+            // Règle 1
+            if (!Objects.equals(certification_commune, other.certification_commune)) {
+                return certification_commune == 1;
+            }
+
+            // Règle 2
+            if (!Objects.equals(source_nom_voie, other.source_nom_voie)) {
+                boolean thisUnknown =
+                        "inconnue".equalsIgnoreCase(source_nom_voie);
+
+                boolean otherUnknown =
+                        "inconnue".equalsIgnoreCase(other.source_nom_voie);
+
+                if (thisUnknown != otherUnknown) {
+                    return !thisUnknown;
+                }
+            }
+
+            // Règle 3
+            if (!Objects.equals(source_position, other.source_position)) {
+                boolean thisUnknown =
+                        "inconnue".equalsIgnoreCase(source_position);
+
+                boolean otherUnknown =
+                        "inconnue".equalsIgnoreCase(other.source_position);
+
+                if (thisUnknown != otherUnknown) {
+                    return !thisUnknown;
+                }
+            }
+            return false;
+        }
     }
 
-
-    // FlatFileItemReader avec fichier en dur
-    /* Reader non dynamique
-	@Bean
-	public FlatFileItemReader<Adresse> csvReader() {
-	    return new FlatFileItemReaderBuilder<Adresse>()
-	            .name("adresseCsvReader")
-	            .resource(new ClassPathResource("adresses-79-2026-06-22.csv"))
-	            .delimited()
-	            .delimiter(";")
-	            .names(
-	            	    "id",
-	            	    "id_fantoir",
-	            	    "numero",
-	            	    "rep",
-	            	    "nom_voie",
-	            	    "code_postal",
-	            	    "code_insee",
-	            	    "nom_commune",
-	            	    "code_insee_ancienne_commune",
-	            	    "nom_ancienne_commune",
-	            	    "x",
-	            	    "y",
-	            	    "lon",
-	            	    "lat",
-	            	    "type_position",
-	            	    "alias",
-	            	    "nom_ld",
-	            	    "libelle_acheminement",
-	            	    "nom_afnor",
-	            	    "source_position",
-	            	    "source_nom_voie",
-	            	    "certification_commune",
-	            	    "cad_parcelles"
-	            	)
-	            .fieldSetMapper(new RecordFieldSetMapper<>(Adresse.class))
-	            .linesToSkip(1)
-	            .build();
-	}*/
     @Bean
     @StepScope
     public FlatFileItemReader<Adresse> csvDynamicReader(
@@ -142,7 +139,7 @@ public class HelloWorldBatchConfig {
     @Bean
     public JdbcBatchItemWriter<Adresse> jdbcWriter(
             DataSource ds) {
-        // La requete SQL va ignorer ceux dont elles n'arrive pas à inserer
+
         return new JdbcBatchItemWriterBuilder<Adresse>()
                 .dataSource(ds)
                 .sql("""   
@@ -158,9 +155,32 @@ public class HelloWorldBatchConfig {
                             :x, :y, :lon, :lat, :type_position, :alias, :nom_ld,
                             :libelle_acheminement, :nom_afnor, :source_position, :source_nom_voie,
                             :certification_commune, :cad_parcelles
-                        );
-                        """)
-                .beanMapped()   // :paramName -> getter du bean
+                        )
+                        ON CONFLICT(id, type_position, x, y)
+                        DO UPDATE SET
+                            id_fantoir = excluded.id_fantoir,
+                            numero = excluded.numero,
+                            rep = excluded.rep,
+                            nom_voie = excluded.nom_voie,
+                            code_postal = excluded.code_postal,
+                            code_insee = excluded.code_insee,
+                            nom_commune = excluded.nom_commune,
+                            code_insee_ancienne_commune = excluded.code_insee_ancienne_commune,
+                            nom_ancienne_commune = excluded.nom_ancienne_commune,
+                            lon = excluded.lon,
+                            lat = excluded.lat,
+                            alias = excluded.alias,
+                            nom_ld = excluded.nom_ld,
+                            libelle_acheminement = excluded.libelle_acheminement,
+                            nom_afnor = excluded.nom_afnor,
+                            source_position = excluded.source_position,
+                            source_nom_voie = excluded.source_nom_voie,
+                            certification_commune = excluded.certification_commune,
+                            cad_parcelles = excluded.cad_parcelles ;
+                       
+                        """) // :paramName -> getter du bean
+                .beanMapped()
+                .assertUpdates(true)
                 .build();
     }
 
@@ -170,6 +190,21 @@ public class HelloWorldBatchConfig {
                 new BeanValidatingItemProcessor<>();
         processorBeanV.setFilter(true);
         return processorBeanV;
+    }
+
+    @Bean
+    public Step suppressionObsoleteStep(
+            JobRepository jobRepository,
+            PlatformTransactionManager transactionManager,
+            Tasklet suppressionObsoleteTasklet) {
+
+        return new StepBuilder(
+                "suppressionObsoleteStep",
+                jobRepository)
+                .tasklet(
+                        suppressionObsoleteTasklet,
+                        transactionManager)
+                .build();
     }
 
     @Bean
@@ -208,11 +243,14 @@ public class HelloWorldBatchConfig {
 
     @Bean
     public Job importAdresseJob(JobRepository jobRepository, Step importAdresseStep,
-                                BilanJobListener listener,DuplicationJobListener duplicationListener) {
+                                BilanJobListener listener,
+                                DuplicationJobListener duplicationListener,
+                                Step suppressionObsoleteStep) {
         return new JobBuilder("importAdresseJob", jobRepository)
                 .listener(listener)
                 .listener(duplicationListener)
                 .start(importAdresseStep)
+                .next(suppressionObsoleteStep)
                 .build();
     }
 

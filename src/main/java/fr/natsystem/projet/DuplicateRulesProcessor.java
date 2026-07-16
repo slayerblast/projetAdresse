@@ -6,21 +6,17 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.batch.infrastructure.item.ItemProcessor;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class DuplicateRulesProcessor implements ItemProcessor <HelloWorldBatchConfig.Adresse, HelloWorldBatchConfig.Adresse> {
+public class DuplicateRulesProcessor implements ItemProcessor<HelloWorldBatchConfig.Adresse, HelloWorldBatchConfig.Adresse> {
     private final DuplicationJobListener duplicationJobListener;
+    private final BilanJobListener bilanJobListener;
 
     @Override
     public HelloWorldBatchConfig.@Nullable Adresse process(HelloWorldBatchConfig.Adresse item) throws Exception {
 
-        String key =   item.id()
+        String key = item.id()
                 + "|"
                 + item.type_position()
                 + "|"
@@ -28,13 +24,23 @@ public class DuplicateRulesProcessor implements ItemProcessor <HelloWorldBatchCo
                 + "|"
                 + item.y();
 
-    if(!duplicationJobListener.getExistingKeys().add(key))
-    {
-
-        return null;
+        HelloWorldBatchConfig.Adresse existing = duplicationJobListener.getExistingAdresses().get(key);
+        duplicationJobListener.getCsvKeys().add(key);
+        if (existing == null) {
+            duplicationJobListener.getExistingAdresses().put(key, item);
+            return item; // insert
+        } else if (existing.equals(item)) {
+            bilanJobListener.setDoublonPur(bilanJobListener.getDoublonPur() + 1);
+            return null; // doublon pur
+        } else if(item.isBetterThan(existing)) {
+            duplicationJobListener.getExistingAdresses().put(key, item);
+            bilanJobListener.setDoublon(bilanJobListener.getDoublon() + 1);
+            return item; //doublon partiel
+        }
+        else {
+            bilanJobListener.setDoublon(bilanJobListener.getDoublon() + 1);
+            return null; //doublon partiel mais rejeté
+        }
     }
-        return item;
-    }
 
-    private record BanKey(String id,Double x, Double y, String type_position){}
 }

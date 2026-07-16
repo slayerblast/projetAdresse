@@ -16,9 +16,6 @@ import java.io.IOException;
 @Component
 @RequiredArgsConstructor
 public class StepProgessListener implements StepExecutionListener {
-    private final AdresseSkipListener skipListener;
-    private final DuplicateRulesProcessor drProcessor;
-
 
     @Override
     public void beforeStep(StepExecution s) {

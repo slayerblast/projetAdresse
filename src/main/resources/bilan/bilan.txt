@@ -1,10 +1,12 @@
 === BILAN IMPORT ===
 ReadCount  : 215163
-WriteCount : 208167
-Ligne en double : 6995
-SkipCount  : 1
+WriteCount : 0
+Lignes qui n'a pas passé le BeanValidation : 1046
+Doublons pur : 214059
+Lignes en double : 57
+Lignes obsolète supprimées: 0
 
-Ids rejeté :
+Ids rejetés :
 Scillé
 
 Ids skippés :

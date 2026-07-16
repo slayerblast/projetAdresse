@@ -1,6 +1,8 @@
 package fr.natsystem.projet;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.springframework.batch.core.job.JobExecution;
 import org.springframework.batch.core.listener.JobExecutionListener;
 import org.springframework.batch.core.step.StepExecution;
@@ -13,8 +15,12 @@ import java.io.IOException;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@Getter
+@Setter
 public class BilanJobListener implements JobExecutionListener {
-    private final DuplicateRulesProcessor drProcessor;
+    private int doublon = 0;
+    private int doublonPur = 0;
+    private  int obsolete = 0 ;
     private final AdresseSkipListener skipListener;
 
     @Override
@@ -25,6 +31,7 @@ public class BilanJobListener implements JobExecutionListener {
 
     @Override
     public void afterJob(JobExecution je) {
+
         log.info("Job {} : {}", je.getJobInstance()
                 .getJobName(), je.getStatus());
 
@@ -32,17 +39,17 @@ public class BilanJobListener implements JobExecutionListener {
                 .filter(s-> s.getStepName().equals("importAdresseStep"))
                 .findFirst().orElse(null);
         if(importSet!=null){
-            long doublons = importSet.getReadCount() - importSet.getWriteCount() - skipListener.getRejetesIds().size();
+            //long doublons = importSet.getReadCount() - importSet.getWriteCount() - skipListener.getRejetesIds().size()+doublon;
             try (FileWriter writer = new FileWriter("src/main/resources/bilan/bilan.txt")) {
-
+                long invalidBean = importSet.getFilterCount() - doublonPur - doublon;
                 writer.write("=== BILAN IMPORT ===\n");
                 writer.write("ReadCount  : " + importSet.getReadCount() + "\n");
                 writer.write("WriteCount : " + importSet.getWriteCount() + "\n");
-                writer.write("Ligne en double : " + doublons + "\n");
-
-                writer.write("SkipCount  : " + importSet.getSkipCount() + "\n");
-
-                writer.write("\nIds rejeté :\n");
+                writer.write("Lignes qui n'a pas passé le BeanValidation : "+invalidBean+  "\n");
+                writer.write("Doublons pur : " + doublonPur + "\n");
+                writer.write("Lignes en double : " + doublon + "\n");
+                writer.write("Lignes obsolète supprimées: " + obsolete + "\n");
+                writer.write("\nIds rejetés :\n");
                 for (String id : skipListener.getRejetesIds()) {
                     writer.write(id + "\n");
                 }

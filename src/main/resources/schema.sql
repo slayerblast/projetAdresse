@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS adresse;
+/*DROP TABLE IF EXISTS adresse;*/
 
 CREATE TABLE IF NOT EXISTS adresse (
     id TEXT,
@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS adresse (
     source_position TEXT,
     source_nom_voie TEXT,
     certification_commune INTEGER,
-    cad_parcelles TEXT
+    cad_parcelles TEXT,
+    UNIQUE(id,type_position,x,y)
 
 );

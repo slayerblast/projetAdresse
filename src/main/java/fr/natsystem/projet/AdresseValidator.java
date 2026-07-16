@@ -19,9 +19,15 @@ public class AdresseValidator
     @Override
     public void validate(HelloWorldBatchConfig.Adresse adresse)
             throws ValidationException {
-        if(!adresse.id().matches("^79\\d{3}.*"))
-        {
-            throw new ValidationException("Erreur de format dans l'id");
+        String codeInsee = adresse.code_insee();
+
+        if (!codeInsee.matches("^(?:0[1-9]|[1-8]\\d|9[0-5]|2A|2B)\\d{3}$")) {
+            throw new ValidationException("Code INSEE invalide");
+        }
+
+        if (!adresse.id().startsWith(codeInsee)) {
+            throw new ValidationException(
+                    "L'id ne commence pas par le code INSEE : " + codeInsee);
         }
 
     }
