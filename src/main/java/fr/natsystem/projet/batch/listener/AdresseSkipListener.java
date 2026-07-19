@@ -1,5 +1,6 @@
-package fr.natsystem.projet;
+package fr.natsystem.projet.batch.listener;
 
+import fr.natsystem.projet.model.Adresse;
 import org.springframework.batch.core.listener.SkipListener;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -8,7 +9,7 @@ import java.util.List;
 
 @Slf4j
 @Component
-public class AdresseSkipListener implements SkipListener<HelloWorldBatchConfig.Adresse, HelloWorldBatchConfig.Adresse> {
+public class AdresseSkipListener implements SkipListener<Adresse, Adresse> {
 
     private final List<String> skippedIds = new ArrayList<>();
     private final List<String> idsRejetes = new ArrayList<>();
@@ -19,13 +20,13 @@ public class AdresseSkipListener implements SkipListener<HelloWorldBatchConfig.A
     }
 
     @Override
-    public void onSkipInProcess(HelloWorldBatchConfig.Adresse adresse, Throwable t) {
+    public void onSkipInProcess(Adresse adresse, Throwable t) {
         log.warn("Skip process id={}", adresse.id());
         idsRejetes.add(adresse.id());
     }
 
     @Override
-    public void onSkipInWrite(HelloWorldBatchConfig.Adresse adresse, Throwable t) {
+    public void onSkipInWrite(Adresse adresse, Throwable t) {
         log.warn("Skip write id={}", adresse.id());
         skippedIds.add(adresse.id());
 

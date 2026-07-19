@@ -1,11 +1,10 @@
-package fr.natsystem.projet;
+package fr.natsystem.projet.batch.listener;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.springframework.batch.core.job.JobExecution;
 import org.springframework.batch.core.listener.JobExecutionListener;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import lombok.extern.slf4j.Slf4j;
 

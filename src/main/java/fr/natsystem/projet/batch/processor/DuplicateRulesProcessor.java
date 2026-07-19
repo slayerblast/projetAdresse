@@ -1,5 +1,8 @@
-package fr.natsystem.projet;
+package fr.natsystem.projet.batch.processor;
 
+import fr.natsystem.projet.batch.listener.BilanJobListener;
+import fr.natsystem.projet.model.Adresse;
+import fr.natsystem.projet.services.AdresseCacheService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
@@ -10,14 +13,14 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class DuplicateRulesProcessor
-        implements ItemProcessor<HelloWorldBatchConfig.Adresse, HelloWorldBatchConfig.Adresse> {
+        implements ItemProcessor<Adresse, Adresse> {
 
     private final AdresseCacheService adresseCacheService;
     private final BilanJobListener bilanJobListener;
     
     @Override
-    public HelloWorldBatchConfig.@Nullable Adresse process(
-            HelloWorldBatchConfig.Adresse item) {
+    public @Nullable Adresse process(
+            Adresse item) {
 
         // Si on change de commune, on recharge le cache
         if (!item.code_insee().equals(adresseCacheService.getCurrentCodeInsee())) {
@@ -26,7 +29,7 @@ public class DuplicateRulesProcessor
 
         String key = buildKey(item);
 
-        HelloWorldBatchConfig.Adresse existing = adresseCacheService.get(key);
+        Adresse existing = adresseCacheService.get(key);
 
         if (existing == null) {
             adresseCacheService.put(key, item);
@@ -47,7 +50,7 @@ public class DuplicateRulesProcessor
         }
     }
 
-    private String buildKey( HelloWorldBatchConfig.Adresse adresse) {
+    private String buildKey( Adresse adresse) {
 
         return adresse.id()
                 + "|"

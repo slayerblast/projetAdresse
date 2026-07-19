@@ -1,4 +1,4 @@
-package fr.natsystem.projet;
+package fr.natsystem.projet.batch.step;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,8 +9,6 @@ import org.springframework.batch.infrastructure.repeat.RepeatStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.HashSet;
-import java.util.Set;
 
 @Slf4j
 @Component

@@ -1,5 +1,6 @@
-package fr.natsystem.projet;
+package fr.natsystem.projet.batch.mapper;
 
+import fr.natsystem.projet.model.Adresse;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
 
@@ -7,13 +8,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 @Component
-public class AdresseRowMapper implements RowMapper<HelloWorldBatchConfig.Adresse> {
+public class AdresseRowMapper implements RowMapper<Adresse> {
 
     @Override
-    public HelloWorldBatchConfig.Adresse mapRow(ResultSet rs, int rowNum)
+    public Adresse mapRow(ResultSet rs, int rowNum)
             throws SQLException {
 
-        return new HelloWorldBatchConfig.Adresse(
+        return new Adresse(
                 rs.getString("id"),
                 rs.getString("id_fantoir"),
                 rs.getString("numero"),

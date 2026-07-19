@@ -1,4 +1,4 @@
-package fr.natsystem.projet;
+package fr.natsystem.projet.model;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.infrastructure.item.validator.ValidationException;
@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class AdresseValidator
-        implements Validator<HelloWorldBatchConfig.Adresse> {
+        implements Validator<Adresse> {
     /**
      * à adapter selon le critère choisi !!!
      * Utilisé pour vérifier le format de l'id
@@ -17,7 +17,7 @@ public class AdresseValidator
      * @throws ValidationException
      */
     @Override
-    public void validate(HelloWorldBatchConfig.Adresse adresse)
+    public void validate(Adresse adresse)
             throws ValidationException {
         String codeInsee = adresse.code_insee();
 

@@ -1,5 +1,8 @@
-package fr.natsystem.projet;
+package fr.natsystem.projet.services;
 
+import fr.natsystem.projet.batch.mapper.AdresseRowMapper;
+
+import fr.natsystem.projet.model.Adresse;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -15,7 +18,7 @@ import java.util.Map;
 @Setter
 @RequiredArgsConstructor
 public class AdresseCacheService {
-    private final Map<String, HelloWorldBatchConfig.Adresse> cache = new HashMap<>();
+    private final Map<String, Adresse> cache = new HashMap<>();
 
     private final AdresseRowMapper rowMapper;
     private String currentCodeInsee;
@@ -28,7 +31,7 @@ public class AdresseCacheService {
         currentCodeInsee = codeInsee;
 
         // charger uniquement cette commune
-        List<HelloWorldBatchConfig.Adresse> adresses =
+        List<Adresse> adresses =
                 jdbcTemplate.query(
                         """
                         SELECT *
@@ -40,7 +43,7 @@ public class AdresseCacheService {
                 );
 
 
-        for (HelloWorldBatchConfig.Adresse adresse : adresses) {
+        for (Adresse adresse : adresses) {
 
             cache.put(
                     buildKey(adresse),
@@ -50,12 +53,12 @@ public class AdresseCacheService {
     }
 
 
-    public HelloWorldBatchConfig.Adresse get(String key) {
+    public Adresse get(String key) {
         return cache.get(key);
     }
 
 
-    public void put(String key, HelloWorldBatchConfig.Adresse adresse) {
+    public void put(String key, Adresse adresse) {
         cache.put(key, adresse);
     }
 
@@ -64,7 +67,7 @@ public class AdresseCacheService {
         cache.clear();
     }
     private String buildKey(
-            HelloWorldBatchConfig.Adresse adresse) {
+            Adresse adresse) {
 
         return adresse.id()
                 + "|"
