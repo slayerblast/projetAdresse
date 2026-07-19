@@ -2,7 +2,10 @@ package fr.natsystem.projet;
 
 import javax.sql.DataSource;
 
+
 import org.springframework.batch.core.step.tasklet.Tasklet;
+import org.springframework.batch.infrastructure.item.database.Order;
+import org.springframework.batch.infrastructure.item.database.support.SqlitePagingQueryProvider;
 import org.springframework.batch.infrastructure.item.validator.ValidationException;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -12,6 +15,7 @@ import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.Step;
 import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.infrastructure.item.database.JdbcPagingItemReader;
 import org.springframework.batch.infrastructure.item.database.JdbcBatchItemWriter;
 import org.springframework.batch.infrastructure.item.database.builder.JdbcBatchItemWriterBuilder;
 import org.springframework.batch.infrastructure.item.file.FlatFileItemReader;
@@ -28,7 +32,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Slf4j
@@ -100,6 +106,7 @@ public class HelloWorldBatchConfig {
     @StepScope
     public FlatFileItemReader<Adresse> csvDynamicReader(
             @Value("#{jobParameters['inputFile']}") String inputFile) {
+
         return new FlatFileItemReaderBuilder<Adresse>()
                 .name("csvDynamicReader")
                 .resource(new FileSystemResource(inputFile))
@@ -133,6 +140,60 @@ public class HelloWorldBatchConfig {
                 .fieldSetMapper(new RecordFieldSetMapper<>(Adresse.class))
                 .linesToSkip(1)
                 .build();
+    }
+
+    @Bean
+    @StepScope
+    public JdbcPagingItemReader<Adresse> stagingReader(DataSource dataSource) throws Exception {
+
+        SqlitePagingQueryProvider provider = new SqlitePagingQueryProvider();
+
+        provider.setSelectClause("""
+        SELECT
+            id,
+            id_fantoir,
+            numero,
+            rep,
+            nom_voie,
+            code_postal,
+            code_insee,
+            nom_commune,
+            code_insee_ancienne_commune,
+            nom_ancienne_commune,
+            x,
+            y,
+            lon,
+            lat,
+            type_position,
+            alias,
+            nom_ld,
+            libelle_acheminement,
+            nom_afnor,
+            source_position,
+            source_nom_voie,
+            certification_commune,
+            cad_parcelles
+        """);
+
+        provider.setFromClause("FROM adresse_staging");
+
+        Map<String, Order> sortKeys = new LinkedHashMap<>();
+        sortKeys.put("code_insee", Order.ASCENDING);
+        sortKeys.put("id", Order.ASCENDING);
+
+        provider.setSortKeys(sortKeys);
+
+        JdbcPagingItemReader<Adresse> reader =
+                new JdbcPagingItemReader<>(dataSource, provider);
+
+        reader.setName("stagingReader");
+        reader.setPageSize(10000);
+        reader.setFetchSize(10000);
+        reader.setRowMapper(new AdresseRowMapper());
+
+        reader.afterPropertiesSet();
+
+        return reader;
     }
 
     // JdbcBatchItemWriter
@@ -302,15 +363,14 @@ public class HelloWorldBatchConfig {
     @Bean
     public Job importAdresseJob(JobRepository jobRepository, Step importAdresseStep,
                                 BilanJobListener listener,
-                                DuplicationJobListener duplicationListener,
+
                                 Step suppressionObsoleteStep,
                                 Step importCsvStep) {
         return new JobBuilder("importAdresseJob", jobRepository)
                 .listener(listener)
-                .listener(duplicationListener)
                 .start(importCsvStep)
-                //.start(importAdresseStep)
-                //.next(suppressionObsoleteStep)
+                .next(importAdresseStep)
+                .next(suppressionObsoleteStep)
                 .build();
     }
 
@@ -328,15 +388,15 @@ public class HelloWorldBatchConfig {
     public Step importAdresseStep(
             JobRepository repo,
             PlatformTransactionManager tx,
-            FlatFileItemReader<Adresse> csvReader,
+            JdbcPagingItemReader<Adresse> stagingReader,
             JdbcBatchItemWriter<Adresse> jdbcWriter,
             CompositeItemProcessor <Adresse, Adresse> compositeProcessor,
             StepProgessListener listener,
             AdresseSkipListener skipListener) {
         return new StepBuilder("importAdresseStep", repo)
-                .<Adresse, Adresse>chunk(1000)
+                .<Adresse, Adresse>chunk(10000)
                 .transactionManager(tx)
-                .reader(csvReader)
+                .reader(stagingReader)
                 .processor(compositeProcessor)
                 .writer(jdbcWriter)
                 .faultTolerant()
@@ -360,13 +420,13 @@ public class HelloWorldBatchConfig {
                 .<Adresse, Adresse>chunk(10000)
                 .transactionManager(tx)
                 .reader(csvReader)
-                //.processor(compositeCsvProcessor)
-                .writer(stagingWriter)
+                .processor(compositeCsvProcessor)
+                .writer(items -> {})
                 .faultTolerant()
                 .skip(ValidationException.class)
                 .skipLimit(Integer.MAX_VALUE)
-                //.listener(listener)
-                //.listener(skipListener)
+                .listener(listener)
+                .listener(skipListener)
                 .build();
     }
 }

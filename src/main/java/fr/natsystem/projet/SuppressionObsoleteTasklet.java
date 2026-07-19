@@ -17,46 +17,35 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class SuppressionObsoleteTasklet implements Tasklet {
 
-    private final DuplicationJobListener duplicationJobListener;
-    private final BilanJobListener bilanJobListener;
     private final JdbcTemplate jdbcTemplate;
+
 
     @Override
     public RepeatStatus execute(
             StepContribution contribution,
             ChunkContext chunkContext) {
-        log.info("adresse en base: {}",duplicationJobListener.getDbAdresses().size());
-        log.info("adresse en base csv: {}",duplicationJobListener.getCsvKeys().size());
-        Set<String> obsoleteKeys =
-                new HashSet<>(
-                        duplicationJobListener
-                                .getDbAdresses()
-                                .keySet());
-        obsoleteKeys.removeAll(
-                duplicationJobListener.getCsvKeys());
-        log.info("adresse en base obsolete : {}",obsoleteKeys.size());
-        for (String key : obsoleteKeys) {
 
-            HelloWorldBatchConfig.Adresse adresse =
-                    duplicationJobListener
-                            .getDbAdresses()
-                            .get(key);
 
-            jdbcTemplate.update(
-                    """
-                    DELETE FROM adresse
-                    WHERE id = ?
-                      AND type_position = ?
-                      AND x = ?
-                      AND y = ?
-                    """,
-                    adresse.id(),
-                    adresse.type_position(),
-                    adresse.x(),
-                    adresse.y());
-            bilanJobListener.setObsolete(bilanJobListener.getObsolete()+1);
-        }
+        int deleted =
+                jdbcTemplate.update(
+                        """
+                                DELETE FROM adresse
+                        WHERE NOT EXISTS (
+                            SELECT 1
+                            FROM adresse_staging
+                            WHERE adresse_staging.id = adresse.id
+                              AND adresse_staging.type_position = adresse.type_position
+                              AND adresse_staging.x = adresse.x
+                              AND adresse_staging.y = adresse.y
+                        );
+                        """
+                );
+
+
+        log.info("{} adresses obsolètes supprimées", deleted);
+
 
         return RepeatStatus.FINISHED;
     }
+
 }

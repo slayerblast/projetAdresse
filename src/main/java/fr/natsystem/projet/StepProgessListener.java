@@ -16,15 +16,13 @@ import java.io.IOException;
 @Component
 @RequiredArgsConstructor
 public class StepProgessListener implements StepExecutionListener {
-
     @Override
     public void beforeStep(StepExecution s) {
-        log.info("Step [{}] demarre", s.getStepName());
+
     }
 
     @Override
     public ExitStatus afterStep(StepExecution s) {
-
         return s.getExitStatus();
     }
 

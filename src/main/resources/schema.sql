@@ -55,5 +55,15 @@ CREATE TABLE IF NOT EXISTS adresse_staging (
                                        certification_commune INTEGER,
                                        cad_parcelles TEXT
 
-
     );
+
+DELETE FROM adresse_staging;
+
+/*
+CREATE INDEX IF NOT EXISTS idx_adresse_code_insee
+    ON adresse(code_insee);
+CREATE INDEX IF NOT EXISTS idx_staging_paging
+    ON adresse_staging(code_insee, id);
+CREATE INDEX IF NOT EXISTS idx_staging_key
+    ON adresse_staging(id,type_position,x,y);
+*/

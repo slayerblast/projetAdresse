@@ -1,0 +1,8 @@
+=== BILAN DES TEMPS ===
+
+Début : 2026-07-19T01:34:46.038301
+Fin    : 2026-07-19T01:40:24.111584800
+Durée totale : 338 secondes
+
+=== Temps par étape ===
+importCsvStep : 338 secondes

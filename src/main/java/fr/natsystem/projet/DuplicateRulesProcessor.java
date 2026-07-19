@@ -9,38 +9,52 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class DuplicateRulesProcessor implements ItemProcessor<HelloWorldBatchConfig.Adresse, HelloWorldBatchConfig.Adresse> {
-    private final DuplicationJobListener duplicationJobListener;
+public class DuplicateRulesProcessor
+        implements ItemProcessor<HelloWorldBatchConfig.Adresse, HelloWorldBatchConfig.Adresse> {
+
+    private final AdresseCacheService adresseCacheService;
     private final BilanJobListener bilanJobListener;
-
+    
     @Override
-    public HelloWorldBatchConfig.@Nullable Adresse process(HelloWorldBatchConfig.Adresse item) throws Exception {
+    public HelloWorldBatchConfig.@Nullable Adresse process(
+            HelloWorldBatchConfig.Adresse item) {
 
-        String key = item.id()
-                + "|"
-                + item.type_position()
-                + "|"
-                + item.x()
-                + "|"
-                + item.y();
-
-        HelloWorldBatchConfig.Adresse existing = duplicationJobListener.getExistingAdresses().get(key);
-        duplicationJobListener.getCsvKeys().add(key);
-        if (existing == null) {
-            duplicationJobListener.getExistingAdresses().put(key, item);
-            return item; // insert
-        } else if (existing.equals(item)) {
-            bilanJobListener.setDoublonPur(bilanJobListener.getDoublonPur() + 1);
-            return null; // doublon pur
-        } else if(item.isBetterThan(existing)) {
-            duplicationJobListener.getExistingAdresses().put(key, item);
-            bilanJobListener.setDoublon(bilanJobListener.getDoublon() + 1);
-            return item; //doublon partiel
+        // Si on change de commune, on recharge le cache
+        if (!item.code_insee().equals(adresseCacheService.getCurrentCodeInsee())) {
+            adresseCacheService.load(item.code_insee());
         }
-        else {
+
+        String key = buildKey(item);
+
+        HelloWorldBatchConfig.Adresse existing = adresseCacheService.get(key);
+
+        if (existing == null) {
+            adresseCacheService.put(key, item);
+            return item; // nouvelle adresse
+
+        } else if (existing.equals(item)) {
+            bilanJobListener.setDoublonPur(
+                    bilanJobListener.getDoublonPur() + 1);
+            return null; // doublon exact
+
+        } else if (item.isBetterThan(existing)) {
+            adresseCacheService.put(key, item);
             bilanJobListener.setDoublon(bilanJobListener.getDoublon() + 1);
-            return null; //doublon partiel mais rejeté
+            return item; // meilleure version
+        } else {
+            bilanJobListener.setDoublon(bilanJobListener.getDoublon() + 1);
+            return null;
         }
     }
 
+    private String buildKey( HelloWorldBatchConfig.Adresse adresse) {
+
+        return adresse.id()
+                + "|"
+                + adresse.type_position()
+                + "|"
+                + adresse.x()
+                + "|"
+                + adresse.y();
+    }
 }
