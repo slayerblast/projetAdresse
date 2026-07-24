@@ -1,5 +1,6 @@
 package fr.natsystem.projet.batch.step;
 
+import fr.natsystem.projet.batch.listener.BilanJobListener;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.scope.context.ChunkContext;
@@ -14,7 +15,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class SuppressionObsoleteTasklet implements Tasklet {
-
+    private final BilanJobListener bilanJobListener;
     private final JdbcTemplate jdbcTemplate;
 
 
@@ -22,7 +23,6 @@ public class SuppressionObsoleteTasklet implements Tasklet {
     public RepeatStatus execute(
             StepContribution contribution,
             ChunkContext chunkContext) {
-
 
         int deleted =
                 jdbcTemplate.update(
@@ -38,10 +38,14 @@ public class SuppressionObsoleteTasklet implements Tasklet {
                         );
                         """
                 );
+        bilanJobListener.setObsolete(deleted);
 
-
-        log.info("{} adresses obsolètes supprimées", deleted);
-
+        log.info("{} adresses obsolètes supprimées", bilanJobListener.getObsolete());
+        jdbcTemplate.execute(
+                """
+                DROP TABLE adresse_staging;
+                """
+        );
 
         return RepeatStatus.FINISHED;
     }

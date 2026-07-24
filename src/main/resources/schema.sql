@@ -1,6 +1,3 @@
-/*DROP TABLE IF EXISTS adresse;
-DROP TABLE IF EXISTS adresse_staging;*/
-
 CREATE TABLE IF NOT EXISTS adresse (
     id TEXT,
     id_fantoir TEXT,
@@ -9,8 +6,7 @@ CREATE TABLE IF NOT EXISTS adresse (
     nom_voie TEXT,
     code_postal TEXT,
     code_insee TEXT,
-    nom_commune TEXT,
-    code_insee_ancienne_commune TEXT,
+    nom_commune TEXT,    code_insee_ancienne_commune TEXT,
     nom_ancienne_commune TEXT,
     x REAL,
     y REAL,
@@ -57,4 +53,4 @@ CREATE TABLE IF NOT EXISTS adresse_staging (
 
     );
 
-DELETE FROM adresse_staging;
+

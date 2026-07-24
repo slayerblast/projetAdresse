@@ -50,6 +50,7 @@ public class BilanJobListener implements JobExecutionListener {
                 writer.write("ReadCount  : " + importSet.getReadCount() + "\n" );
                 writer.write("WriteCount : "+ importSet.getWriteCount() + "\n" );
                 writer.write("Lignes qui n'ont pas passé le BeanValidation : "+ importSet.getFilterCount() + "\n");
+                writer.write("Nombre d'ID rejetés : "+ skipListener.getIdsRejetes().size() + "\n");
                 /*
                 writer.write("\nIds rejetés :\n");
                 for (String id : skipListener.getRejetesIds()) {
@@ -70,11 +71,9 @@ public class BilanJobListener implements JobExecutionListener {
                 .findFirst().orElse(null);
         if(importSet!=null){
             try (FileWriter writer = new FileWriter("src/main/resources/bilan/bilan.txt")) {
-                long invalidBean = importSet.getFilterCount() - doublonPur - doublon;
                 writer.write("=== BILAN IMPORT ===\n");
                 writer.write("ReadCount  : " + importSet.getReadCount() + "\n");
                 writer.write("WriteCount : " + importSet.getWriteCount() + "\n");
-                writer.write("Lignes qui n'a pas passé le BeanValidation : "+invalidBean+  "\n");
                 writer.write("Doublons pur : " + doublonPur + "\n");
                 writer.write("Lignes en double : " + doublon + "\n");
                 writer.write("Lignes obsolète supprimées: " + obsolete + "\n");

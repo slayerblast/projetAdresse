@@ -1,5 +1,6 @@
 package fr.natsystem.projet.batch.reader;
 
+import fr.natsystem.projet.batch.mapper.AdresseFieldSetMapper;
 import fr.natsystem.projet.batch.mapper.AdresseRowMapper;
 import fr.natsystem.projet.model.Adresse;
 import org.springframework.batch.infrastructure.item.database.JdbcPagingItemReader;
@@ -24,7 +25,8 @@ public class ReaderConfig {
     @Bean
     @StepScope
     public FlatFileItemReader<Adresse> csvDynamicReader(
-            @Value("#{jobParameters['inputFile']}") String inputFile) {
+            @Value("#{jobParameters['inputFile']}") String inputFile,
+            AdresseFieldSetMapper fieldSetMapper) {
 
         return new FlatFileItemReaderBuilder<Adresse>()
                 .name("csvReader")
@@ -40,7 +42,7 @@ public class ReaderConfig {
                         "nom_afnor", "source_position", "source_nom_voie",
                         "certification_commune", "cad_parcelles"
                 )
-                .fieldSetMapper(new RecordFieldSetMapper<>(Adresse.class))
+                .fieldSetMapper(fieldSetMapper)
                 .linesToSkip(1)
                 .build();
     }
@@ -68,8 +70,7 @@ public class ReaderConfig {
                 new JdbcPagingItemReader<>(ds, provider);
 
         reader.setName("stagingReader");
-        reader.setPageSize(10000);
-        reader.setFetchSize(10000);
+        reader.setPageSize(50000);
         reader.setRowMapper(new AdresseRowMapper());
         reader.afterPropertiesSet();
 

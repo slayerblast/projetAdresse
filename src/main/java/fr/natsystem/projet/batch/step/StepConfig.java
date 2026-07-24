@@ -3,6 +3,8 @@ package fr.natsystem.projet.batch.step;
 import fr.natsystem.projet.batch.listener.AdresseSkipListener;
 import fr.natsystem.projet.batch.listener.StepProgessListener;
 import fr.natsystem.projet.model.Adresse;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.listener.ChunkListener;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.Step;
 import org.springframework.batch.core.step.builder.StepBuilder;
@@ -17,6 +19,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
+@Slf4j
 @Configuration
 public class StepConfig {
     @Bean
@@ -28,7 +31,7 @@ public class StepConfig {
                 }, txManager)
                 .build();
     }
-
+    int test = 0;
     @Bean
     public Step importAdresseStep(
             JobRepository repo,
@@ -37,7 +40,8 @@ public class StepConfig {
             JdbcBatchItemWriter<Adresse> jdbcWriter,
             CompositeItemProcessor<Adresse, Adresse> compositeProcessor,
             StepProgessListener listener,
-            AdresseSkipListener skipListener) {
+            AdresseSkipListener skipListener,
+            ChunkListener MetricChunkListener) {
         return new StepBuilder("importAdresseStep", repo)
                 .<Adresse, Adresse>chunk(10000)
                 .transactionManager(tx)
@@ -49,6 +53,7 @@ public class StepConfig {
                 .skipLimit(Integer.MAX_VALUE)
                 .listener(listener)
                 .listener(skipListener)
+                .listener(MetricChunkListener)
                 .build();
 
     }

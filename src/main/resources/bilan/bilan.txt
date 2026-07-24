@@ -1,7 +1,6 @@
 === BILAN IMPORT ===
-ReadCount  : 24837249
-WriteCount : 0
-Lignes qui n'a pas passé le BeanValidation : 0
-Doublons pur : 24836923
-Lignes en double : 326
-Lignes obsolète supprimées: 0
+ReadCount  : 24969952
+WriteCount : 56764
+Doublons pur : 24891103
+Lignes en double : 39327
+Lignes obsolète supprimées: 36674

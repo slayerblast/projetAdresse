@@ -2,7 +2,9 @@ package fr.natsystem.projet.batch.processor;
 
 import fr.natsystem.projet.batch.listener.BilanJobListener;
 import fr.natsystem.projet.model.Adresse;
+import fr.natsystem.projet.model.AdresseKey;
 import fr.natsystem.projet.services.AdresseCacheService;
+import fr.natsystem.projet.services.BatchMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
@@ -17,47 +19,98 @@ public class DuplicateRulesProcessor
 
     private final AdresseCacheService adresseCacheService;
     private final BilanJobListener bilanJobListener;
-    
+    private final BatchMetrics metrics;
+
+    @Override
+    public @Nullable Adresse process(Adresse item) {
+
+        long start = System.nanoTime();
+
+        try {
+
+            // Si on change de commune, on recharge le cache
+            if (!item.code_insee()
+                    .equals(adresseCacheService.getCurrentCodeInsee())) {
+
+                adresseCacheService.load(item.code_insee());
+            }
+
+            AdresseKey key = item.key();
+            Adresse existing = adresseCacheService.get(key);
+
+            if (existing == null) {
+
+                adresseCacheService.put(key, item);
+
+            } else if (existing.equals(item)) {
+
+                bilanJobListener.setDoublonPur(
+                        bilanJobListener.getDoublonPur() + 1);
+
+                item = null;
+
+            } else if (item.isBetterThan(existing)) {
+
+                adresseCacheService.put(key, item);
+
+                bilanJobListener.setDoublon(
+                        bilanJobListener.getDoublon() + 1);
+
+            } else {
+
+                bilanJobListener.setDoublon(
+                        bilanJobListener.getDoublon() + 1);
+
+                item = null;
+            }
+
+            return item;
+
+        } finally {
+
+            metrics.addProcessorTime(
+                    System.nanoTime() - start);
+        }
+    }
+}
+
+
+/*
+public class DuplicateRulesProcessor
+        implements ItemProcessor<Adresse, Adresse> {
+    private final AdresseCacheService adresseCacheService;
+    private final BilanJobListener bilanJobListener;
+
     @Override
     public @Nullable Adresse process(
             Adresse item) {
-
+        long start = System.nanoTime();
         // Si on change de commune, on recharge le cache
         if (!item.code_insee().equals(adresseCacheService.getCurrentCodeInsee())) {
             adresseCacheService.load(item.code_insee());
         }
 
-        String key = buildKey(item);
-
+        AdresseKey key = item.key();
         Adresse existing = adresseCacheService.get(key);
 
         if (existing == null) {
             adresseCacheService.put(key, item);
-            return item; // nouvelle adresse
+             // nouvelle adresse
 
         } else if (existing.equals(item)) {
             bilanJobListener.setDoublonPur(
                     bilanJobListener.getDoublonPur() + 1);
-            return null; // doublon exact
+            item = null; // doublon exact
 
         } else if (item.isBetterThan(existing)) {
             adresseCacheService.put(key, item);
             bilanJobListener.setDoublon(bilanJobListener.getDoublon() + 1);
-            return item; // meilleure version
+              // meilleure version
         } else {
             bilanJobListener.setDoublon(bilanJobListener.getDoublon() + 1);
-            return null;
+             item = null;//doublon non gardé
         }
+        return item;
     }
 
-    private String buildKey( Adresse adresse) {
-
-        return adresse.id()
-                + "|"
-                + adresse.type_position()
-                + "|"
-                + adresse.x()
-                + "|"
-                + adresse.y();
-    }
-}
+}*/

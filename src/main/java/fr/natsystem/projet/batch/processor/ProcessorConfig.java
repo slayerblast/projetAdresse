@@ -32,16 +32,10 @@ public class ProcessorConfig {
 
     @Bean
     public CompositeItemProcessor<Adresse, Adresse> compositeProcessor(
-            DuplicateRulesProcessor duplicateRulesProcessor,
-            ValidatingItemProcessor<Adresse> validatingProcessor,
-            BeanValidatingItemProcessor<Adresse> beanValidatingProcessor) {
+            DuplicateRulesProcessor duplicateRulesProcessor) {
 
         CompositeItemProcessor<Adresse, Adresse> comp = new CompositeItemProcessor<>();
-        comp.setDelegates(List.of(
-                beanValidatingProcessor,
-                duplicateRulesProcessor,
-                validatingProcessor
-        ));
+        comp.setDelegates(List.of( duplicateRulesProcessor));
         return comp;
     }
 
